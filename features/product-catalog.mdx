@@ -146,6 +146,32 @@ export interface NutritionInfo {
 
 This structured data enables consistent nutrition labels across all products.
 
+## WhatsApp ordering
+
+Product detail pages include a "Shop Now" button that initiates a WhatsApp conversation for B2B inquiries:
+
+```typescript src/pods/product/product.pod.astro (lines 255-266)
+whatsappBtn?.addEventListener("click", () => {
+  const phone = "51932120023";
+  const productName =
+    whatsappBtn.getAttribute("data-product-title") ?? "el producto";
+  const message = `Buen día! Me gustaría comprar ${quantity} unidad(es) de ${productName}.`;
+
+  const encodedMessage = encodeURIComponent(message);
+  const url = `https://wa.me/${phone}?text=${encodedMessage}`;
+
+  window.open(url, "_blank");
+});
+```
+
+**Features:**
+- Pre-filled message with product name and quantity
+- Direct link to WhatsApp Business number
+- Opens in new tab for seamless ordering experience
+- Quantity selector to specify order amount
+
+This provides a low-friction ordering path for B2B customers to initiate bulk purchases.
+
 ## Build-time generation
 
 Products are fetched during the build process, not at runtime:
