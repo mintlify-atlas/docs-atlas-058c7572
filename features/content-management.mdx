@@ -1,0 +1,285 @@
+---
+title: Content management
+description: Managing products and recipes with Content Island headless CMS
+---
+
+Alefoods uses Content Island as a headless CMS to manage product catalog and recipe content. This allows non-technical team members to update content without touching code.
+
+## Content Island overview
+
+Content Island is a headless CMS that provides:
+
+- **Structured content** - Define schemas for products and recipes
+- **API-first** - Access content via REST API
+- **Build-time fetching** - Content is fetched during site build for optimal performance
+- **TypeScript support** - Official API client with type safety
+
+## Client setup
+
+The Content Island client is initialized in `src/lib/client.ts`:
+
+```typescript src/lib/client.ts
+import { createClient } from "@content-island/api-client";
+import { CONTENT_ISLAND_SECRET_TOKEN } from "astro:env/server";
+
+const client = createClient({
+    accessToken: CONTENT_ISLAND_SECRET_TOKEN,
+})
+
+export default client;
+```
+
+### Authentication
+
+The client uses a secret token for API authentication:
+
+<ParamField path="CONTENT_ISLAND_SECRET_TOKEN" type="string" required>
+  API token for Content Island authentication. Obtained from Content Island dashboard.
+</ParamField>
+
+<Warning>
+This token provides full access to your content. Never commit it to version control or expose it client-side.
+</Warning>
+
+## Content types
+
+Alefoods uses two primary content types:
+
+### Product content type
+
+Stores product information:
+- Title and description
+- Pricing and weight
+- Product images
+- Nutrition information
+- Categories and features
+- Stock status
+
+See [Product Model](/api/product-model) for the complete schema.
+
+### Recipe content type
+
+Stores recipe information:
+- Recipe title and description
+- Ingredients list
+- Cooking instructions
+- Preparation time and difficulty
+- Serving size
+- Recipe imagery
+- Categories
+
+See [Recipe Model](/api/recipe-model) for the complete schema.
+
+## Fetching content
+
+Content is fetched using the `getContentList` method:
+
+### Products
+
+```typescript src/pods/products-collection/products-collection.api.ts
+import client from "#lib/client.ts";
+import type { Product } from "./products-collection.model";
+
+export const getAllProducts = async () =>
+    await client.getContentList<Product>({
+        contentType: 'Product',
+        includeRelatedContent: true,
+        sort: {'fields.title': 'asc'},
+    })
+```
+
+### Recipes
+
+```typescript src/pods/recipe-collection/recipe-collection.api.ts
+import client from "#lib/client.ts";
+import type { Recipe } from "./recipe-collection.model";
+
+export const getAllRecipes = async () => 
+    await client.getContentList<Recipe>({
+        contentType: 'Recipe',
+        sort: {'fields.title': 'asc'},
+        pagination: { take: 14 },
+    })
+```
+
+## Query options
+
+The `getContentList` method supports various options:
+
+<ParamField path="contentType" type="string" required>
+  The name of the content type to fetch (e.g., 'Product', 'Recipe')
+</ParamField>
+
+<ParamField path="includeRelatedContent" type="boolean">
+  Whether to include nested/related content. Useful for fetching nutrition info within products.
+</ParamField>
+
+<ParamField path="sort" type="object">
+  Sort order for results. Format: `{'fields.fieldName': 'asc' | 'desc'}`
+</ParamField>
+
+<ParamField path="pagination" type="object">
+  Pagination options:
+  - `take`: Number of items to fetch
+  - `skip`: Number of items to skip
+</ParamField>
+
+## Build-time vs. runtime
+
+Alefoods fetches content at **build time**, not runtime:
+
+<Tabs>
+  <Tab title="Build-time (Alefoods)">
+    **Pros:**
+    - Fastest possible page loads (pre-rendered HTML)
+    - No API calls during user browsing
+    - Better SEO (fully static pages)
+    - Lower hosting costs
+
+    **Cons:**
+    - Content updates require a rebuild
+    - Not suitable for frequently changing data
+  </Tab>
+  
+  <Tab title="Runtime (alternative)">
+    **Pros:**
+    - Content updates appear immediately
+    - No rebuild needed
+
+    **Cons:**
+    - Slower page loads (API latency)
+    - Higher server costs
+    - Requires server-side rendering or client-side fetching
+  </Tab>
+</Tabs>
+
+<Info>
+For Alefoods' use case (B2B product catalog that updates infrequently), build-time fetching is ideal.
+</Info>
+
+## When content is fetched
+
+Content is fetched during these operations:
+
+<Steps>
+  <Step title="Local development">
+    Running `pnpm dev` fetches content for the dev server
+  </Step>
+  <Step title="Production build">
+    Running `pnpm build` fetches content and generates static pages
+  </Step>
+  <Step title="Deployment">
+    Vercel/Netlify runs `pnpm build` automatically on deploy
+  </Step>
+</Steps>
+
+## Updating content workflow
+
+To update product or recipe content:
+
+<Steps>
+  <Step title="Edit in Content Island">
+    Log into Content Island dashboard and update products/recipes
+  </Step>
+  <Step title="Trigger rebuild">
+    Manually trigger a deployment in Vercel/Netlify, or push a commit to trigger automatic deployment
+  </Step>
+  <Step title="Wait for build">
+    The build process fetches updated content from Content Island
+  </Step>
+  <Step title="Verify live site">
+    Check the production site to see updated content
+  </Step>
+</Steps>
+
+<Tip>
+Set up a webhook in Content Island to automatically trigger deploys when content changes. This removes the manual step.
+</Tip>
+
+## Error handling
+
+If Content Island is unreachable during build:
+
+```bash
+❌ Error: Failed to fetch content from Content Island
+```
+
+**Common causes:**
+- Invalid `CONTENT_ISLAND_SECRET_TOKEN`
+- Content Island API is down
+- Network connectivity issues
+- Rate limiting
+
+<Warning>
+Build failures mean your site won't deploy. Always test content changes in a preview environment first.
+</Warning>
+
+## Type safety
+
+TypeScript interfaces ensure content matches expected structure:
+
+```typescript
+// Type-safe content fetching
+const products = await client.getContentList<Product>({
+  contentType: 'Product'
+});
+
+// TypeScript knows the shape of each product
+products.forEach(product => {
+  console.log(product.title);     // ✅ TypeScript knows this exists
+  console.log(product.invalidProp); // ❌ TypeScript error
+});
+```
+
+This prevents runtime errors from content structure mismatches.
+
+## Content Island API client
+
+Alefoods uses the official `@content-island/api-client` package:
+
+```json package.json
+{
+  "dependencies": {
+    "@content-island/api-client": "^0.16.0"
+  }
+}
+```
+
+See the [Content Island documentation](https://content-island.com/docs) for advanced API usage.
+
+## Environment configuration
+
+The token is configured in `astro.config.mjs`:
+
+```javascript astro.config.mjs
+env: {
+  schema: {
+    CONTENT_ISLAND_SECRET_TOKEN: envField.string({
+      context: 'server',
+      access: 'secret',
+      optional: false,
+      default: 'INFORM_VALID_TOKEN',
+    }),
+  }
+}
+```
+
+- `context: 'server'` - Only available server-side (not in browser)
+- `access: 'secret'` - Treated as sensitive data
+- `optional: false` - Required for builds to succeed
+
+See [Environment Variables](/development/environment-variables) for setup instructions.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Product Catalog" icon="grid" href="/features/product-catalog">
+    Learn how products are fetched and displayed
+  </Card>
+  <Card title="Recipe Library" icon="book" href="/features/recipe-library">
+    Learn how recipes are fetched and displayed
+  </Card>
+  <Card title="Content Island Integration" icon="plug" href="/architecture/content-island-integration">
+    Deep dive into the CMS integration architecture
+  </Card>
+</CardGroup>

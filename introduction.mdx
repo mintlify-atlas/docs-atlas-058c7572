@@ -1,0 +1,121 @@
+---
+title: Introduction
+description: A digital showroom and lead generation platform for exporting Peruvian superfoods, quinoa, and specialty coffee
+---
+
+## Welcome to Alefoods
+
+Alefoods is a modern digital showroom built to showcase premium Peruvian superfoods and connect exporters with global buyers. The platform combines a beautiful product catalog, inspiring recipe library, and streamlined lead generation system to help you expand your reach in international markets.
+
+<Info>
+  Built with Astro 5, Tailwind CSS 4, and powered by Content Island CMS for seamless content management.
+</Info>
+
+## What is Alefoods?
+
+Alefoods serves as your digital storefront for Peruvian exports, featuring:
+
+- **Ready-to-eat quinoa** (red and white varieties)
+- **Specialty coffee** from Oxapampa
+- **Natural Peruvian superfoods**
+
+The platform is designed to attract international buyers, showcase product quality with rich media, and capture qualified leads through an integrated contact system.
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="Product catalog" icon="bag-shopping" href="/features/product-catalog">
+    Dynamic product pages with pricing, nutrition facts, and high-quality imagery powered by Content Island CMS.
+  </Card>
+  
+  <Card title="Recipe library" icon="book-open" href="/features/recipe-library">
+    Inspiring recipes with step-by-step instructions, ingredients, and cooking details to showcase product versatility.
+  </Card>
+  
+  <Card title="Lead generation" icon="envelope" href="/features/contact-form">
+    Spam-protected contact form with Resend email integration and honeypot validation for quality inquiries.
+  </Card>
+  
+  <Card title="Content management" icon="database" href="/features/content-management">
+    Headless CMS integration with Content Island for easy product and recipe updates without code changes.
+  </Card>
+</CardGroup>
+
+## Tech stack overview
+
+Alefoods leverages modern web technologies for performance, SEO, and developer experience:
+
+```typescript
+// Core technologies
+const stack = {
+  framework: "Astro 5.15.4",
+  styling: "Tailwind CSS 4.1.17",
+  cms: "Content Island API Client",
+  email: "Resend 6.6.0",
+  deployment: "Vercel/Netlify",
+  package_manager: "pnpm 9.x"
+};
+```
+
+<Tabs>
+  <Tab title="Frontend">
+    - **Astro 5.15.4**: Static site generation with excellent performance
+    - **Tailwind CSS 4.1.17**: Utility-first styling via Vite plugin
+    - **TypeScript**: Type-safe development experience
+  </Tab>
+  
+  <Tab title="Content & Data">
+    - **Content Island**: Headless CMS for products and recipes
+    - **Astro Actions**: Server-side form handling with Zod validation
+    - **Dynamic routing**: File-based routing for product and recipe pages
+  </Tab>
+  
+  <Tab title="Infrastructure">
+    - **Static output**: Pre-rendered pages for optimal performance
+    - **Sitemap generation**: Automatic SEO-friendly sitemap
+    - **Environment schema**: Type-safe env vars with Astro's env field
+  </Tab>
+</Tabs>
+
+## Architecture highlights
+
+The application follows a pod-based architecture for clean separation of concerns:
+
+```typescript src/lib/client.ts:1
+import { createClient } from "@content-island/api-client";
+import { CONTENT_ISLAND_SECRET_TOKEN } from "astro:env/server";
+
+const client = createClient({
+    accessToken: CONTENT_ISLAND_SECRET_TOKEN,
+})
+
+export default client;
+```
+
+- **Pods**: Self-contained modules combining data fetching, models, and presentation
+- **Server actions**: Form handling with built-in validation and error handling
+- **Type-safe APIs**: TypeScript interfaces for products and recipes
+
+## Quick links
+
+<CardGroup cols={2}>
+  <Card title="Get started" icon="rocket" href="/quickstart">
+    Install dependencies and run the site locally in under 5 minutes.
+  </Card>
+  
+  <Card title="Project structure" icon="folder-tree" href="/development/project-structure">
+    Understand the codebase organization and file conventions.
+  </Card>
+  
+  <Card title="Environment setup" icon="key" href="/development/environment-variables">
+    Configure API keys for Content Island and Resend.
+  </Card>
+  
+  <Card title="Deploy to production" icon="cloud-arrow-up" href="/development/deployment">
+    Deploy to Vercel or Netlify with continuous deployment.
+  </Card>
+</CardGroup>
+
+<Note>
+  This platform is optimized for **B2B lead generation** and international export marketing. All content is managed through Content Island CMS, making it easy for non-technical team members to update products and recipes.
+</Note>

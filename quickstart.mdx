@@ -1,80 +1,255 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get the Alefoods platform running locally in under 5 minutes
 ---
 
-## Get started in three steps
+## Prerequisites
 
-Get your documentation site running locally and make your first customization.
+Before you begin, ensure you have the following installed:
 
-### Step 1: Set up your local environment
+- **Node.js 20.x** (recommended version)
+- **pnpm 9.x** (preferred package manager)
+- **Git** for cloning the repository
+
+<Tip>
+  You can use npm or yarn instead of pnpm, but pnpm is recommended for faster installs and better disk space efficiency.
+</Tip>
+
+## Installation
+
+Get Alefoods running on your local machine by following these steps:
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the Alefoods repository to your local machine:
+    
+    ```bash
+    git clone https://github.com/Doki2007/alefoods.git
+    cd alefoods
+    ```
+  </Step>
+  
+  <Step title="Install dependencies">
+    Install all required packages using your preferred package manager:
+    
+    <CodeGroup>
+      ```bash pnpm
+      pnpm install
+      ```
+      
+      ```bash npm
+      npm install
+      ```
+      
+      ```bash yarn
+      yarn install
+      ```
+    </CodeGroup>
+    
+    <Info>
+      The project uses pnpm workspaces. If you're using pnpm, dependencies will be installed more efficiently.
+    </Info>
+  </Step>
+  
+  <Step title="Set up environment variables">
+    Create a `.env` file in the root directory with the required API keys:
+    
+    <CodeGroup>
+      ```bash macOS/Linux
+      cp .env.example .env
+      ```
+      
+      ```bash Windows
+      copy .env.example .env
+      ```
+    </CodeGroup>
+    
+    Open the `.env` file and configure the following variables:
+    
+    ```bash .env
+    # Content Island API token for fetching products and recipes
+    CONTENT_ISLAND_SECRET_TOKEN=your_content_island_token_here
+    
+    # Resend API key for sending contact form emails
+    RESEND_API_KEY=your_resend_api_key_here
+    
+    # Email addresses for contact form
+    FROM_EMAIL=no-reply@yourdomain.com
+    TO_EMAIL=leads@yourdomain.com
+    ```
+    
+    <Warning>
+      All four environment variables are **required**. The build will fail if any are missing or invalid. See the [environment variables guide](/development/environment-variables) for details on obtaining these credentials.
+    </Warning>
+  </Step>
+  
+  <Step title="Start the development server">
+    Launch the local development server:
+    
+    <CodeGroup>
+      ```bash pnpm
+      pnpm dev
+      ```
+      
+      ```bash npm
+      npm run dev
+      ```
+      
+      ```bash yarn
+      yarn dev
+      ```
+    </CodeGroup>
+    
+    The site will be available at:
+    - **Local**: `http://localhost:4321`
+    - **Network**: Your local IP address (for testing on mobile devices)
+    
+    <Tip>
+      The dev server includes hot module replacement (HMR). Changes to your code will automatically update in the browser.
+    </Tip>
+  </Step>
+  
+  <Step title="Verify the installation">
+    Open your browser and navigate to `http://localhost:4321`. You should see:
+    
+    - Hero section with Peruvian quinoa imagery
+    - Best sellers section featuring products from Content Island
+    - Recipe cards with sample recipes
+    - Contact form at `/contact-us`
+    
+    If you see error messages about missing content, verify that your `CONTENT_ISLAND_SECRET_TOKEN` is correct.
+  </Step>
+</Steps>
+
+## Build for production
+
+Once you've made changes, build the site for production:
+
+<CodeGroup>
+  ```bash pnpm
+  pnpm build
+  ```
+  
+  ```bash npm
+  npm run build
+  ```
+  
+  ```bash yarn
+  yarn build
+  ```
+</CodeGroup>
+
+This generates a static build in the `dist/` directory that can be deployed to any hosting provider.
+
+<Info>
+  The build process fetches all products and recipes from Content Island at build time. This creates a fully static site with excellent performance.
+</Info>
+
+## Preview production build locally
+
+To test the production build locally before deploying:
+
+<CodeGroup>
+  ```bash pnpm
+  pnpm preview
+  ```
+  
+  ```bash npm
+  npm run preview
+  ```
+  
+  ```bash yarn
+  yarn preview
+  ```
+</CodeGroup>
+
+## Available scripts
+
+Here are all the scripts defined in `package.json`:
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start the development server with HMR |
+| `pnpm build` | Create a production build in `dist/` |
+| `pnpm preview` | Preview the production build locally |
+| `pnpm astro` | Run Astro CLI commands (e.g., `astro check`) |
+
+## Troubleshooting
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+  <Accordion title="Build fails with 'CONTENT_ISLAND_SECRET_TOKEN is invalid'">
+    This means your Content Island API token is missing or incorrect. Verify:
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+    1. The `.env` file exists in the project root
+    2. `CONTENT_ISLAND_SECRET_TOKEN` is set correctly
+    3. The token has not expired
+    
+    Contact your Content Island administrator for a valid token.
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+  
+  <Accordion title="Contact form doesn't send emails">
+    Check the following:
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+    1. `RESEND_API_KEY` is a valid Resend API key
+    2. `FROM_EMAIL` is verified in your Resend account
+    3. `TO_EMAIL` is a valid email address
+    4. Check the browser console and server logs for error messages
+    
+    See the [contact form documentation](/features/contact-form) for more details.
+  </Accordion>
+  
+  <Accordion title="Port 4321 is already in use">
+    Another process is using port 4321. You can either:
+    
+    1. Stop the other process
+    2. Change the port in `astro.config.mjs`:
+    
+    ```javascript astro.config.mjs:18
+    server: {
+      host: true,  
+      port: 3000,  // Change to your preferred port
+    },
+    ```
+  </Accordion>
+  
+  <Accordion title="pnpm command not found">
+    Install pnpm globally:
+    
+    ```bash
+    npm install -g pnpm
+    ```
+    
+    Or use npx to run pnpm without installing:
+    
+    ```bash
+    npx pnpm install
+    npx pnpm dev
+    ```
   </Accordion>
 </AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
+Now that you have Alefoods running locally, explore these topics:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Project structure" icon="folder-tree" href="/development/project-structure">
+    Learn how the codebase is organized and where to find specific features.
+  </Card>
+  
+  <Card title="Product catalog" icon="bag-shopping" href="/features/product-catalog">
+    Understand how products are fetched and displayed from Content Island.
+  </Card>
+  
+  <Card title="Recipe library" icon="book-open" href="/features/recipe-library">
+    See how recipes are structured and rendered on the site.
+  </Card>
+  
+  <Card title="Deployment" icon="cloud-arrow-up" href="/development/deployment">
+    Deploy your changes to Vercel or Netlify for production.
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  **Questions?** Check the [development guide](/development/setup) for detailed information on working with the codebase, or review the [architecture overview](/architecture/overview) to understand how everything fits together.
 </Note>

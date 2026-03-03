@@ -1,0 +1,135 @@
+---
+title: 'Development Setup'
+description: 'Set up your local development environment for Alefoods'
+---
+
+## Requirements
+
+Before you begin, ensure you have the following installed:
+
+- **Node.js 20.x** (recommended)
+- **PNPM 9.x** (recommended package manager)
+
+The project uses:
+- Astro 5.15.4
+- Tailwind CSS 4.1.17
+- React 19.2.0
+
+<Tip>
+Consider adding a `.nvmrc` or `.node-version` file to ensure team consistency with Node.js versions.
+</Tip>
+
+## Installation
+
+<Steps>
+  <Step title="Clone the repository">
+    Clone the Alefoods repository to your local machine:
+    ```bash
+    git clone <repository-url>
+    cd alefoods
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    Use PNPM to install all project dependencies:
+    ```bash
+    pnpm install
+    ```
+  </Step>
+
+  <Step title="Set up environment variables">
+    Create a `.env` file in the project root:
+    
+    **Windows:**
+    ```bash
+    copy .env.example .env
+    ```
+    
+    **macOS/Linux:**
+    ```bash
+    cp .env.example .env
+    ```
+    
+    Then configure your environment variables. See [Environment Variables](/development/environment-variables) for details.
+  </Step>
+
+  <Step title="Start the development server">
+    Run the development server with LAN access enabled:
+    ```bash
+    pnpm dev
+    ```
+    
+    The site will be available at `http://localhost:4321`
+  </Step>
+</Steps>
+
+## Available Scripts
+
+The following npm scripts are available in `package.json`:
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start local development server (runs on port 4321 with LAN access) |
+| `pnpm build` | Generate production build to `dist/` directory |
+| `pnpm preview` | Serve the production build locally for testing |
+| `pnpm astro` | Run Astro CLI commands directly (e.g., `pnpm astro check`) |
+
+<Note>
+Planned additions include `pnpm lint`, `pnpm format`, and `pnpm test` scripts once linting and testing tooling is configured.
+</Note>
+
+## Development Server Configuration
+
+The development server is configured in `astro.config.mjs` with the following settings:
+
+```javascript
+server: {
+  host: true,  // Enables LAN access
+  port: 4321,  // Default port
+}
+```
+
+This allows you to access the development server from other devices on your local network.
+
+## Building for Production
+
+<Steps>
+  <Step title="Run the build command">
+    ```bash
+    pnpm build
+    ```
+    
+    This generates a static site in the `dist/` directory.
+  </Step>
+
+  <Step title="Preview the production build">
+    ```bash
+    pnpm preview
+    ```
+    
+    This serves the production build locally for testing before deployment.
+  </Step>
+</Steps>
+
+<Warning>
+Ensure all environment variables are set before building. Missing variables like `CONTENT_ISLAND_SECRET_TOKEN` will cause the build to fail since products and recipes are fetched at build time.
+</Warning>
+
+## Troubleshooting
+
+### Build Failures
+
+If `getAllProducts` or `getAllRecipes` fails during build:
+- Verify your `CONTENT_ISLAND_SECRET_TOKEN` is valid
+- Check your internet connection (Content Island API must be accessible)
+- Review the error logs for specific API issues
+
+### Port Already in Use
+
+If port 4321 is already in use, you can modify the port in `astro.config.mjs` or kill the process using that port.
+
+## Next Steps
+
+- Review the [Project Structure](/development/project-structure) to understand the codebase
+- Configure [Environment Variables](/development/environment-variables) for local development
+- Learn about [Deployment](/development/deployment) options

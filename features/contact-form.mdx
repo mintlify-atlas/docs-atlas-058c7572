@@ -1,0 +1,281 @@
+---
+title: Contact form
+description: Lead generation contact form with Resend email integration and honeypot spam protection
+---
+
+The contact form enables prospective B2B customers to reach out about product inquiries and bulk orders. It uses Astro Actions for server-side processing and Resend for reliable email delivery.
+
+## How it works
+
+The contact form follows a secure, server-side processing flow:
+
+1. **Client submission** - User fills out form on `/contact-us` page
+2. **Astro Action** - Form data is sent to `server.send` action
+3. **Validation** - Zod schema validates input fields
+4. **Spam check** - Honeypot field detects bots
+5. **Sanitization** - Text is cleaned to prevent XSS attacks
+6. **Email sending** - Resend API delivers the message
+7. **Response** - Success/error message displayed to user
+
+## Form fields
+
+The contact form includes these fields:
+
+<ParamField path="name" type="string" required>
+  Contact person's name
+  - Minimum: 2 characters
+  - Maximum: 50 characters
+  - Validation: `Name too short` / `Name too long`
+</ParamField>
+
+<ParamField path="mail" type="string" required>
+  Contact email address
+  - Must be valid email format
+  - Maximum: 75 characters
+  - Validation: `Invalid email`
+</ParamField>
+
+<ParamField path="message" type="string" required>
+  Inquiry message
+  - Minimum: 10 characters
+  - Maximum: 200 characters
+  - Validation: `Min 10 characters` / `Max 200 characters`
+</ParamField>
+
+<ParamField path="website" type="string">
+  Honeypot field (hidden from users)
+  - Optional field used for spam detection
+  - Should remain empty for legitimate submissions
+  - If filled, submission is silently rejected
+</ParamField>
+
+## Astro Action implementation
+
+The form uses an Astro Action for server-side processing:
+
+```typescript src/actions/index.ts
+import { z } from 'astro:schema';
+import { defineAction } from 'astro:actions';
+import { Resend } from 'resend';
+import { RESEND_API_KEY, FROM_EMAIL, TO_EMAIL } from 'astro:env/server';
+
+const resend = new Resend(RESEND_API_KEY);
+
+export const server = {
+    send: defineAction({
+        accept: 'form',
+        input: z.object({
+            name: z.string().min(2, 'Name too short.').max(50, 'Name too long.'),
+            mail: z.string().email('Invalid email.').max(75),
+            message: z.string().min(10, 'Min 10 characters.').max(200, 'Max 200 characters.'),
+            website: z.string().optional()
+        }),
+        handler: async ( input ) => {
+            // Honeypot check
+            if (input.website && input.website.trim() !== '') {
+                return { success: false, message: 'Honeypot activado' };
+            }
+
+            // Text sanitization
+            const sanitizeText = (text: string): string => {
+                return text.trim()
+                    .replace(/[<>]/g, '')  
+                    .replace(/['\"]]/g, '')  
+                    .replace(/javascript:/gi, '')  
+                    .replace(/on\w+=/gi, '')  
+                    .slice(0, 200);
+            };
+
+            const cleanedName = sanitizeText(input.name);
+            const cleanedMail = sanitizeText(input.mail);
+            const cleanedMessage = sanitizeText(input.message);
+
+            // Send email
+            await resend.emails.send({
+                from: FROM_EMAIL,
+                to: TO_EMAIL,
+                subject: `${cleanedName} desea negociar.`,
+                html: `<strong>Mail: </strong>${cleanedMail} <br/> <strong>Mensaje: </strong> <br/> ${cleanedMessage}`,
+            });
+            
+            return { success: true, message: 'Message sent successfully.' };
+        }
+    })
+}
+```
+
+See the [Contact Action API reference](/api/contact-action) for detailed documentation.
+
+## Honeypot spam protection
+
+The form includes a hidden `website` field as a honeypot:
+
+**How it works:**
+1. The field is hidden with CSS from human users
+2. Bots often auto-fill all form fields
+3. If the field contains any value, the submission is rejected
+4. Rejection is silent to avoid informing bots
+
+```typescript src/actions/index.ts (lines 24-28)
+if (website && website.trim() !== '') {
+    console.log('🪤 Honeypot activado → mail NO enviado');
+    return { success: false, message: 'Honeypot activado' };
+}
+```
+
+<Tip>
+The honeypot approach is more user-friendly than CAPTCHA and effectively blocks most automated spam.
+</Tip>
+
+## Text sanitization
+
+All user input is sanitized to prevent XSS attacks:
+
+```typescript src/actions/index.ts (lines 31-38)
+function sanitizeText ( text: string ): string {
+    return text.trim()
+        .replace(/[<>]/g, '')           // Remove angle brackets
+        .replace(/['\"]]/g, '')        // Remove quotes
+        .replace(/javascript:/gi, '')   // Remove javascript: protocol
+        .replace(/on\w+=/gi, '')        // Remove event handlers
+        .slice(0, 200);                 // Enforce max length
+}
+```
+
+**What gets removed:**
+- HTML tags (`< >` characters)
+- JavaScript event handlers (`onclick=`, `onload=`, etc.)
+- `javascript:` protocol
+- Quote characters that could break HTML
+
+All input is also trimmed and limited to 200 characters maximum.
+
+## Email delivery
+
+Emails are sent using Resend:
+
+```typescript src/actions/index.ts (lines 45-50)
+await resend.emails.send({
+    from: FROM_EMAIL,
+    to: TO_EMAIL,
+    subject: `${cleanedName} desea negociar.`,
+    html: `<strong>Mail: </strong>${cleanedMail} <br/> <strong>Mensaje: </strong> <br/> ${cleanedMessage}`,
+});
+```
+
+### Required environment variables
+
+<ParamField path="RESEND_API_KEY" type="string" required>
+  Your Resend API key for authentication
+</ParamField>
+
+<ParamField path="FROM_EMAIL" type="string" required>
+  Verified sender email address in Resend (e.g., `noreply@alefoods.com`)
+</ParamField>
+
+<ParamField path="TO_EMAIL" type="string" required>
+  Destination email where inquiries are sent (e.g., `leads@alefoods.com`)
+</ParamField>
+
+See [Environment Variables](/development/environment-variables) for setup instructions.
+
+## Error handling
+
+The action includes comprehensive error handling:
+
+```typescript src/actions/index.ts (lines 53-56)
+catch ( err ) {
+    console.log('❌ Error al enviar mail:', err);
+    return { success: false, message: 'An error occurred while sending the message.'}
+}
+```
+
+Possible error scenarios:
+- Invalid Resend API key
+- FROM_EMAIL not verified in Resend
+- Network connectivity issues
+- Rate limiting
+
+<Warning>
+If email sending fails, the error is logged server-side but the user receives a generic error message. Check server logs for debugging.
+</Warning>
+
+## Response handling
+
+The action returns a consistent response format:
+
+**Success:**
+```json
+{
+  "success": true,
+  "message": "Message sent successfully."
+}
+```
+
+**Failure (honeypot):**
+```json
+{
+  "success": false,
+  "message": "Honeypot activado"
+}
+```
+
+**Failure (error):**
+```json
+{
+  "success": false,
+  "message": "An error occurred while sending the message."
+}
+```
+
+## Client-side integration
+
+The form on `/contact-us` submits to the action:
+
+```astro src/pages/contact-us.astro
+---
+import { actions } from 'astro:actions';
+---
+
+<form method="POST" action={actions.server.send}>
+  <input type="text" name="name" required />
+  <input type="email" name="mail" required />
+  <textarea name="message" required></textarea>
+  
+  <!-- Honeypot field (hidden) -->
+  <input type="text" name="website" style="display: none;" />
+  
+  <button type="submit">Send Message</button>
+</form>
+```
+
+## Security best practices
+
+<AccordionGroup>
+  <Accordion title="Input validation">
+    All fields are validated with Zod before processing. Never trust client-side validation alone.
+  </Accordion>
+  
+  <Accordion title="Rate limiting">
+    Consider adding rate limiting to prevent abuse. Resend has built-in rate limits, but you may want application-level limits.
+  </Accordion>
+  
+  <Accordion title="Environment variables">
+    Never commit `.env` files. Keep API keys in environment variables and rotate them regularly.
+  </Accordion>
+  
+  <Accordion title="Email verification">
+    Verify your FROM_EMAIL domain in Resend to ensure email deliverability and prevent spoofing.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Contact Action API" icon="code" href="/api/contact-action">
+    Detailed API reference for the send action
+  </Card>
+  <Card title="Email Service Architecture" icon="envelope" href="/architecture/email-service">
+    Learn about the Resend integration architecture
+  </Card>
+</CardGroup>

@@ -1,0 +1,253 @@
+---
+title: 'Environment Variables'
+description: 'Configure environment variables for Alefoods development and production'
+---
+
+## Overview
+
+Alefoods requires several environment variables for Content Island integration and email functionality. These variables are defined in `astro.config.mjs` using Astro's environment variable schema.
+
+<Warning>
+All environment variables are **required** and marked as `secret`. The build will fail if any are missing or invalid.
+</Warning>
+
+## Required Environment Variables
+
+The following environment variables must be configured both locally and in production:
+
+<ParamField path="CONTENT_ISLAND_SECRET_TOKEN" type="string" required>
+  API token for authenticating with Content Island to fetch products and recipes.
+  
+  - **Context**: Server-side only
+  - **Access**: Secret (not exposed to client)
+  - **Required**: Yes
+  - **Default**: `'INFORM_VALID_TOKEN'` (placeholder, will cause build failure)
+  
+  Obtain this token from your Content Island dashboard.
+</ParamField>
+
+<ParamField path="RESEND_API_KEY" type="string" required>
+  Resend API key for sending transactional emails from the contact form.
+  
+  - **Context**: Server-side only
+  - **Access**: Secret (not exposed to client)
+  - **Required**: Yes
+  - **Default**: `'INFORM_VALID_TOKEN'` (placeholder, will cause build failure)
+  
+  Create an API key at [resend.com](https://resend.com).
+</ParamField>
+
+<ParamField path="FROM_EMAIL" type="string" required>
+  Verified sender email address in Resend for outgoing contact form emails.
+  
+  - **Context**: Server-side only
+  - **Access**: Secret (not exposed to client)
+  - **Required**: Yes
+  - **Default**: `'INFORM_VALID_EMAIL'` (placeholder, will cause build failure)
+  
+  Must be a verified domain/email in your Resend account (e.g., `no-reply@yourdomain.com`).
+</ParamField>
+
+<ParamField path="TO_EMAIL" type="string" required>
+  Destination email address where contact form submissions are sent.
+  
+  - **Context**: Server-side only
+  - **Access**: Secret (not exposed to client)
+  - **Required**: Yes
+  - **Default**: `'INFORM_VALID_EMAIL'` (placeholder, will cause build failure)
+  
+  Typically your business email (e.g., `leads@yourdomain.com`).
+</ParamField>
+
+## Environment Variable Schema
+
+These variables are defined in `astro.config.mjs` using Astro's `envField` API:
+
+```javascript astro.config.mjs
+env: {
+  schema: {
+    CONTENT_ISLAND_SECRET_TOKEN: envField.string({
+      context: 'server',
+      access: 'secret',
+      optional: false,
+      default: 'INFORM_VALID_TOKEN',
+    }),
+    RESEND_API_KEY: envField.string({
+      context: 'server',
+      access: 'secret',
+      optional: false,
+      default: 'INFORM_VALID_TOKEN',
+    }),
+    FROM_EMAIL: envField.string({
+      context: 'server',
+      access: 'secret',
+      optional: false,
+      default: 'INFORM_VALID_EMAIL',
+    }),
+    TO_EMAIL: envField.string({
+      context: 'server',
+      access: 'secret',
+      optional: false,
+      default: 'INFORM_VALID_EMAIL',
+    }),
+  },
+}
+```
+
+## Local Development Setup
+
+<Steps>
+  <Step title="Create .env file">
+    Create a `.env` file in the project root (it's gitignored):
+    
+    **Windows:**
+    ```bash
+    copy .env.example .env
+    ```
+    
+    **macOS/Linux:**
+    ```bash
+    cp .env.example .env
+    ```
+  </Step>
+
+  <Step title="Configure variables">
+    Edit `.env` with your actual values:
+    
+    ```bash .env
+    CONTENT_ISLAND_SECRET_TOKEN=ci_your_actual_token_here
+    RESEND_API_KEY=re_your_actual_key_here
+    FROM_EMAIL=no-reply@yourdomain.com
+    TO_EMAIL=leads@yourdomain.com
+    ```
+  </Step>
+
+  <Step title="Verify configuration">
+    Start the dev server to ensure variables are loaded correctly:
+    
+    ```bash
+    pnpm dev
+    ```
+    
+    If any variables are missing or invalid, Astro will display an error.
+  </Step>
+</Steps>
+
+<Warning>
+**Never commit `.env` to version control.** Ensure `.env` is in your `.gitignore` file.
+</Warning>
+
+## Production Setup
+
+### Vercel Deployment
+
+<Steps>
+  <Step title="Open Vercel project settings">
+    Navigate to your project in the Vercel dashboard and go to **Settings** → **Environment Variables**.
+  </Step>
+
+  <Step title="Add environment variables">
+    Add each variable with its production value:
+    
+    - `CONTENT_ISLAND_SECRET_TOKEN`
+    - `RESEND_API_KEY`
+    - `FROM_EMAIL`
+    - `TO_EMAIL`
+    
+    Make sure to select the appropriate environments (Production, Preview, Development).
+  </Step>
+
+  <Step title="Redeploy">
+    Trigger a new deployment for the environment variables to take effect.
+  </Step>
+</Steps>
+
+### Netlify Deployment
+
+<Steps>
+  <Step title="Open Netlify site settings">
+    Navigate to your site in the Netlify dashboard and go to **Site settings** → **Environment variables**.
+  </Step>
+
+  <Step title="Add environment variables">
+    Click **Add a variable** and add each required variable:
+    
+    - `CONTENT_ISLAND_SECRET_TOKEN`
+    - `RESEND_API_KEY`
+    - `FROM_EMAIL`
+    - `TO_EMAIL`
+    
+    Select the appropriate scopes (Production, Deploy Previews, Branch deploys).
+  </Step>
+
+  <Step title="Redeploy">
+    Trigger a new deployment or clear cache and deploy to apply changes.
+  </Step>
+</Steps>
+
+## Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep secrets out of version control">
+    - Never commit `.env` files to Git
+    - Add `.env*` to `.gitignore` (except `.env.example`)
+    - Use `.env.example` as a template with dummy values
+  </Accordion>
+
+  <Accordion title="Rotate keys regularly">
+    - Rotate API keys periodically for better security
+    - Update keys in both Resend/Content Island dashboards and deployment platforms
+    - Use separate keys for development and production
+  </Accordion>
+
+  <Accordion title="Use platform secrets managers">
+    - Store production secrets in Vercel/Netlify environment variables
+    - Consider using secrets managers for team environments
+    - Limit access to production secrets to necessary team members
+  </Accordion>
+
+  <Accordion title="Validate email domains">
+    - Verify sender domains in Resend before deploying
+    - Use verified domains to avoid email deliverability issues
+    - Test email functionality in preview deployments
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+### Build Fails Due to Missing Variables
+
+**Error:** `CONTENT_ISLAND_SECRET_TOKEN` is required
+
+**Solution:** Ensure the variable is set in your `.env` file (local) or deployment platform (production).
+
+### Content Island API Fails
+
+**Error:** `getAllProducts` or `getAllRecipes` fails at build time
+
+**Solution:**
+- Verify your `CONTENT_ISLAND_SECRET_TOKEN` is valid
+- Check that Content Island API is accessible
+- Ensure you have products/recipes configured in Content Island
+
+### Email Not Sending
+
+**Error:** Contact form submissions don't send emails
+
+**Solution:**
+- Verify `RESEND_API_KEY` is valid
+- Ensure `FROM_EMAIL` is verified in Resend
+- Check Resend dashboard for error logs
+- Confirm `TO_EMAIL` is a valid email address
+
+### Default Placeholder Values
+
+**Error:** Variables still show `INFORM_VALID_TOKEN` or `INFORM_VALID_EMAIL`
+
+**Solution:** These are placeholder defaults in `astro.config.mjs`. You must override them with actual values in your `.env` file or deployment platform.
+
+## Next Steps
+
+- Review [Deployment](/development/deployment) for production setup
+- Learn about [Project Structure](/development/project-structure)
+- Check [Development Setup](/development/setup) for local configuration

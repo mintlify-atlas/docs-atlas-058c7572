@@ -1,0 +1,206 @@
+---
+title: 'Project Structure'
+description: 'Understanding the Alefoods codebase organization and architecture'
+---
+
+## Directory Overview
+
+```
+/
+├── public/                  # Static assets (images, fonts, etc.)
+├── src/
+│   ├── actions/             # Astro Actions (server-side logic)
+│   ├── assets/              # Build-time optimized assets
+│   │   ├── icons/           # SVG icons and icon assets
+│   │   └── images/          # Images processed by Astro
+│   ├── components/          # Reusable UI components
+│   ├── data/                # Static data files
+│   ├── layouts/             # Page layouts (base layout with navbar/footer)
+│   ├── lib/                 # Utility libraries (Content Island client)
+│   ├── pages/               # Astro pages (file-based routing)
+│   │   ├── products/        # Product pages
+│   │   └── recipes/         # Recipe pages
+│   ├── pods/                # Data + presentation pods
+│   │   ├── product/         # Single product pod
+│   │   ├── products-collection/  # Products collection pod
+│   │   ├── recipe/          # Single recipe pod
+│   │   └── recipe-collection/    # Recipes collection pod
+│   └── styles/              # Global CSS and Tailwind configuration
+├── astro.config.mjs         # Astro configuration
+├── package.json             # Dependencies and scripts
+├── tailwind.config.js       # Tailwind CSS configuration
+└── pnpm-workspace.yaml      # PNPM workspace configuration
+```
+
+## Key Directories Explained
+
+### `/src/actions/`
+
+Contains **Astro Actions** for server-side logic:
+
+- Contact form email handling using Resend
+- Zod validation for form inputs
+- Honeypot spam protection
+
+**Example:** Contact form action in `src/actions/index.ts` validates and sends emails via Resend.
+
+### `/src/components/`
+
+Reusable UI components that make up the site:
+
+- `Hero.astro` - Homepage hero section
+- `Navbar.astro` - Site navigation
+- `Footer.astro` - Site footer
+- `Recipes.astro` - Recipe listing component
+- Other section components
+
+<Tip>
+Components use Astro syntax (`.astro` files) and can include React components when interactivity is needed.
+</Tip>
+
+### `/src/pages/`
+
+**File-based routing** powered by Astro:
+
+- `index.astro` - Homepage (`/`)
+- `about.astro` - About page (`/about`)
+- `contact.astro` - Contact page (`/contact`)
+- `products/` - Product pages
+  - `index.astro` - Products listing (`/products`)
+  - `[slug].astro` - Dynamic product detail pages (`/products/{slug}`)
+- `recipes/` - Recipe pages
+  - `index.astro` - Recipes listing (`/recipes`)
+  - `[slug].astro` - Dynamic recipe detail pages (`/recipes/{slug}`)
+
+**Dynamic routes** use square brackets (e.g., `[slug].astro`) and fetch data from Content Island.
+
+### `/src/pods/`
+
+**Pods** encapsulate data fetching and presentation logic:
+
+- **`products-collection/`** - Fetches all products from Content Island
+- **`product/`** - Single product data and presentation
+- **`recipe-collection/`** - Fetches all recipes from Content Island
+- **`recipe/`** - Single recipe data and presentation
+
+Pods separate concerns between data fetching (API calls to Content Island) and presentation (UI components).
+
+### `/src/layouts/`
+
+Base layouts that wrap pages:
+
+- Includes common elements like navbar and footer
+- Provides consistent structure across all pages
+- Handles SEO meta tags and document structure
+
+### `/src/lib/`
+
+Utility libraries and API clients:
+
+- Content Island API client for fetching products and recipes
+- Helper functions and utilities
+
+### `/src/assets/` vs `/public/`
+
+**`/src/assets/`** - Build-time optimized assets:
+- Processed and optimized by Astro
+- Images, icons that benefit from optimization
+- Imported in components using import statements
+
+**`/public/`** - Static assets served as-is:
+- Copied directly to build output
+- Favicons, robots.txt, static images
+- Accessible via root path (e.g., `/favicon.ico`)
+
+## File Naming Conventions
+
+- **Astro components**: `ComponentName.astro` (PascalCase)
+- **Pages**: `page-name.astro` (kebab-case)
+- **Dynamic routes**: `[param].astro` (square brackets)
+- **TypeScript files**: `.ts` extension
+- **Styles**: `.css` extension
+
+## Configuration Files
+
+### `astro.config.mjs`
+
+Main Astro configuration:
+
+```javascript
+export default defineConfig({
+  site: "https://alefoods.vercel.app",
+  output: 'static',
+  adapter: vercel(),
+  integrations: [sitemap()],
+  server: { host: true, port: 4321 },
+  env: { schema: { /* environment variables */ } },
+  vite: { plugins: [tailwindcss()] }
+});
+```
+
+Configures:
+- Site URL for SEO and sitemap
+- Static output mode
+- Vercel adapter for deployment
+- Sitemap generation
+- Development server settings
+- Environment variable schema
+- Tailwind CSS via Vite plugin
+
+### `package.json`
+
+Defines:
+- Project dependencies (Astro, Tailwind, Resend, Content Island)
+- npm scripts (`dev`, `build`, `preview`)
+- Import aliases using `imports` field: `#*` maps to `./src/*`
+
+<Note>
+The `imports` field allows you to use `#components/Hero.astro` instead of relative paths like `../../components/Hero.astro`.
+</Note>
+
+## Adding New Features
+
+### Creating a New Page
+
+1. Create a new `.astro` file in `/src/pages/`
+2. Use a layout from `/src/layouts/`
+3. The file name becomes the URL path
+
+**Example:** `src/pages/about.astro` → `/about`
+
+### Adding a New Component
+
+1. Create a new `.astro` file in `/src/components/`
+2. Use PascalCase naming
+3. Import and use in pages or other components
+
+### Creating a Dynamic Route
+
+1. Create `[param].astro` in the appropriate directory
+2. Export `getStaticPaths()` function to generate routes
+3. Fetch data from Content Island or other sources
+
+**Example:** See `src/pages/products/[slug].astro` for reference
+
+### Adding a New Server Action
+
+1. Define action in `/src/actions/index.ts`
+2. Use Zod for validation
+3. Access via `actions.actionName` in components
+
+## Data Flow
+
+1. **Build time**: Astro fetches products and recipes from Content Island API
+2. **Static generation**: Pages are pre-rendered to HTML
+3. **Client side**: Minimal JavaScript for interactive elements
+4. **Form submissions**: Handled by Astro Actions + Resend
+
+<Warning>
+If Content Island API is unavailable during build, the build will fail. Ensure `CONTENT_ISLAND_SECRET_TOKEN` is valid and the API is accessible.
+</Warning>
+
+## Next Steps
+
+- Set up [Environment Variables](/development/environment-variables)
+- Learn about [Deployment](/development/deployment)
+- Review the [Development Setup](/development/setup) guide

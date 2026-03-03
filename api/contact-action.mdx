@@ -1,0 +1,235 @@
+---
+title: "Contact Form Action"
+description: "Server-side action for handling contact form submissions with spam protection and email delivery"
+---
+
+## Overview
+
+The `server.send` action is an Astro server action that handles contact form submissions. It validates input using Zod schemas, implements honeypot spam protection, sanitizes user input, and sends emails via Resend.
+
+This action is defined in `src/actions/index.ts:10` and accepts form data submissions.
+
+## Input Schema
+
+The action accepts the following form fields:
+
+<ParamField path="name" type="string" required>
+  The sender's name.
+  - **Minimum length**: 2 characters
+  - **Maximum length**: 50 characters
+  - **Validation error**: "Name too short." or "Name too long."
+</ParamField>
+
+<ParamField path="mail" type="string" required>
+  The sender's email address.
+  - **Format**: Valid email address
+  - **Maximum length**: 75 characters
+  - **Validation error**: "Invalid email."
+</ParamField>
+
+<ParamField path="message" type="string" required>
+  The message content.
+  - **Minimum length**: 10 characters
+  - **Maximum length**: 200 characters
+  - **Validation error**: "Min 10 characters." or "Max 200 characters."
+</ParamField>
+
+<ParamField path="website" type="string" optional>
+  Honeypot field for spam protection. Should be hidden from users and left empty.
+  - If filled, the submission is treated as spam and rejected
+  - Not visible in the UI
+</ParamField>
+
+## Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the email was sent successfully.
+</ResponseField>
+
+<ResponseField name="message" type="string">
+  Human-readable message describing the result:
+  - `"Message sent successfully."` - Email sent successfully
+  - `"Honeypot activado"` - Spam detected via honeypot
+  - `"An error occurred while sending the message."` - Server error occurred
+</ResponseField>
+
+## Spam Protection
+
+The action implements a **honeypot field** strategy to prevent automated spam submissions:
+
+1. The `website` field is included in the form but hidden from legitimate users via CSS
+2. Bots typically fill all form fields, including hidden ones
+3. If `website` contains any non-empty value, the submission is rejected
+4. The response appears normal to the bot, but no email is sent
+
+See implementation in `src/actions/index.ts:25-28`.
+
+## Text Sanitization
+
+All user inputs are sanitized before being sent via email to prevent XSS and injection attacks:
+
+```typescript
+function sanitizeText(text: string): string {
+  return text.trim()
+    .replace(/[<>]/g, '')          // Remove HTML brackets
+    .replace(/['"]/g, '')          // Remove quotes
+    .replace(/javascript:/gi, '')  // Remove javascript: protocol
+    .replace(/on\w+=/gi, '')       // Remove event handlers
+    .slice(0, 200);                // Enforce max length
+}
+```
+
+The sanitization process (defined in `src/actions/index.ts:31-38`):
+- Trims whitespace
+- Removes HTML brackets (`<` and `>`)
+- Removes single and double quotes
+- Removes `javascript:` protocol references
+- Removes inline event handlers (e.g., `onclick=`)
+- Enforces a maximum length of 200 characters
+
+## Usage Example
+
+### Basic Form Implementation
+
+```astro
+---
+import { actions } from 'astro:actions';
+---
+
+<form method="POST" action={actions.server.send}>
+  <label>
+    Name
+    <input 
+      type="text" 
+      name="name" 
+      required 
+      minlength="2" 
+      maxlength="50"
+    />
+  </label>
+
+  <label>
+    Email
+    <input 
+      type="email" 
+      name="mail" 
+      required 
+      maxlength="75"
+    />
+  </label>
+
+  <label>
+    Message
+    <textarea 
+      name="message" 
+      required 
+      minlength="10" 
+      maxlength="200"
+    ></textarea>
+  </label>
+
+  {/* Honeypot field - hidden from users */}
+  <input 
+    type="text" 
+    name="website" 
+    style="display: none;" 
+    tabindex="-1" 
+    autocomplete="off"
+  />
+
+  <button type="submit">Send Message</button>
+</form>
+```
+
+### With Client-Side Validation
+
+```astro
+---
+import { actions } from 'astro:actions';
+
+const result = Astro.getActionResult(actions.server.send);
+---
+
+<form method="POST" action={actions.server.send}>
+  <label>
+    Name
+    <input 
+      type="text" 
+      name="name" 
+      required 
+      minlength="2" 
+      maxlength="50"
+    />
+  </label>
+
+  <label>
+    Email
+    <input 
+      type="email" 
+      name="mail" 
+      required 
+      maxlength="75"
+    />
+  </label>
+
+  <label>
+    Message
+    <textarea 
+      name="message" 
+      required 
+      minlength="10" 
+      maxlength="200"
+    ></textarea>
+  </label>
+
+  <input 
+    type="text" 
+    name="website" 
+    style="display: none;" 
+    tabindex="-1" 
+    autocomplete="off"
+  />
+
+  <button type="submit">Send Message</button>
+
+  {result?.data?.success && (
+    <p class="success">{result.data.message}</p>
+  )}
+
+  {result?.data && !result.data.success && (
+    <p class="error">{result.data.message}</p>
+  )}
+</form>
+```
+
+## Error Handling
+
+The action handles errors gracefully:
+
+1. **Validation Errors**: Zod validates input before the handler runs. Invalid data returns specific field-level errors.
+
+2. **Honeypot Detection**: Returns `{ success: false, message: 'Honeypot activado' }` without sending email.
+
+3. **Email Sending Errors**: Catches exceptions from the Resend API and returns `{ success: false, message: 'An error occurred while sending the message.' }`.
+
+4. **Server Logs**: Errors are logged to the console with emoji indicators:
+   - `🪤 Honeypot activado → mail NO enviado` - Spam detected
+   - `❌ Error al enviar mail:` - Email sending failed
+
+## Environment Variables
+
+The action requires these server environment variables:
+
+- `RESEND_API_KEY` - Resend API authentication key
+- `FROM_EMAIL` - Sender email address
+- `TO_EMAIL` - Recipient email address for contact form submissions
+
+Configure these in your `.env` file or deployment environment.
+
+## Implementation Details
+
+- **Location**: `src/actions/index.ts:10-61`
+- **Email Provider**: Resend
+- **Validation**: Zod schemas with custom error messages
+- **Security**: Honeypot spam protection + text sanitization
+- **Form Handling**: Native HTML form submission (`accept: 'form'`)

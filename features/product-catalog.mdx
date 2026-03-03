@@ -1,0 +1,181 @@
+---
+title: Product catalog
+description: Dynamic product catalog powered by Content Island CMS with filtering and dynamic routing
+---
+
+The product catalog displays Alefoods' Peruvian superfoods, quinoa products, and specialty coffee. Products are fetched from Content Island CMS at build time and rendered as static pages with dynamic routing.
+
+## How it works
+
+The product catalog uses a "pods" architecture pattern that combines data fetching, TypeScript models, and presentation components:
+
+1. **Data fetching** - Products are retrieved from Content Island API
+2. **Type safety** - TypeScript interfaces ensure data consistency
+3. **Dynamic routing** - Each product gets its own page at `/products/[slug]`
+4. **Static generation** - All pages are pre-rendered at build time
+
+## Product data model
+
+Products use a structured TypeScript interface:
+
+```typescript src/pods/products-collection/products-collection.model.ts
+export interface Product {
+  id: string;
+  language: 'en';
+  lastUpdate: string;
+  title: string;
+  slug: string;
+  price: number;
+  weight: string;
+  picture: Media[];
+  shortDescription: string;
+  description: string;
+  inStock?: boolean;
+  feature: string[];
+  nutritionInfo: NutritionInfo[];
+  category: string[];
+}
+```
+
+See the [Product Model](/api/product-model) reference for complete field documentation.
+
+## Fetching products
+
+The `getAllProducts` function retrieves all products from Content Island:
+
+```typescript src/pods/products-collection/products-collection.api.ts
+import client from "#lib/client.ts";
+import type { Product } from "./products-collection.model";
+
+export const getAllProducts = async () =>
+    await client.getContentList<Product>({
+        contentType: 'Product',
+        includeRelatedContent: true,
+        sort: {'fields.title': 'asc'},
+    })
+```
+
+### Key parameters
+
+- `contentType: 'Product'` - Specifies the Content Island content type
+- `includeRelatedContent: true` - Includes nested content like nutrition info
+- `sort: {'fields.title': 'asc'}` - Alphabetical sorting by product title
+
+## Best sellers
+
+A curated list of featured products is available via `getBestSellers`:
+
+```typescript src/pods/products-collection/products-collection.api.ts
+export const getBestSellers = async () => {
+    const allProducts = await getAllProducts();
+    const bestSellerSlugs = [
+        "quinua-roja-cocida", 
+        "quinua-blanca-cocida",
+        "cafe-exportacion"
+    ];
+    return allProducts.filter(p => bestSellerSlugs.includes(p.slug));
+};
+```
+
+This filters the full product list to show only the three featured items on the homepage.
+
+## Dynamic routing
+
+Product detail pages use Astro's dynamic routing:
+
+**Directory structure:**
+```
+src/pages/products/
+├── index.astro          # Product listing page
+└── [slug].astro         # Individual product pages
+```
+
+**URL pattern:**
+- `/products` - All products
+- `/products/quinua-roja-cocida` - Individual product
+- `/products/cafe-exportacion` - Another product
+
+Each product's `slug` field determines its URL.
+
+## Product listing page
+
+The main products page at `/products` uses the `ProductsPod` component:
+
+```astro src/pages/products/index.astro
+---
+import Layout from "#layouts/Layout.astro";
+import ProductsPod from "#pods/products-collection/products-collection.pod.astro";
+---
+
+<Layout title="Our Products">
+  <div class="text-center my-8 sm:my-12 md:my-16">
+    <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-primary mb-4 sm:mb-6">
+      Explore Our Natural Products
+    </h1>
+    <p class="text-base sm:text-lg md:text-xl font-semibold text-secondary max-w-2xl mx-auto">
+      Discover the best of Peruvian natural foods, guaranteed for quality and freshness.
+    </p>
+  </div>
+  <ProductsPod />
+</Layout>
+```
+
+## Product categories
+
+Products are organized by category:
+
+- **Quinoa** - Ready-to-eat quinoa varieties (red, white, tri-color)
+- **Coffee** - Specialty coffee from Oxapampa region
+- **Superfoods** - Natural Peruvian superfoods and ingredients
+
+Categories are stored in the `category` array field on each product.
+
+## Nutrition information
+
+Each product includes detailed nutrition facts via the `nutritionInfo` array:
+
+```typescript
+export interface NutritionInfo {
+  id: string;
+  language: 'en';
+  lastUpdate: string;
+  label: string;  // e.g., "Calories", "Protein"
+  value: string;  // e.g., "180 kcal", "8g"
+}
+```
+
+This structured data enables consistent nutrition labels across all products.
+
+## Build-time generation
+
+Products are fetched during the build process, not at runtime:
+
+<Steps>
+  <Step title="Build starts">
+    Astro initiates static site generation
+  </Step>
+  <Step title="Content Island API call">
+    `getAllProducts()` fetches product data using `CONTENT_ISLAND_SECRET_TOKEN`
+  </Step>
+  <Step title="Page generation">
+    Static HTML pages are created for each product slug
+  </Step>
+  <Step title="Deploy">
+    Pre-rendered pages are deployed to Vercel/Netlify
+  </Step>
+</Steps>
+
+<Info>
+If the Content Island API is unavailable during build, the build will fail. Ensure `CONTENT_ISLAND_SECRET_TOKEN` is correctly configured.
+</Info>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Product Model" icon="code" href="/api/product-model">
+    View complete Product and NutritionInfo TypeScript interfaces
+  </Card>
+  <Card title="Content Island Integration" icon="plug" href="/architecture/content-island-integration">
+    Learn how the CMS client is configured
+  </Card>
+</CardGroup>

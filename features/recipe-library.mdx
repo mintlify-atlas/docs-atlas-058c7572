@@ -1,0 +1,221 @@
+---
+title: Recipe library
+description: Recipe collection with imagery, ingredients, and step-by-step cooking instructions
+---
+
+The recipe library showcases creative ways to use Alefoods products, featuring Peruvian-inspired dishes with detailed cooking instructions and beautiful imagery.
+
+## How it works
+
+Recipes are managed through Content Island CMS and follow the same pods architecture as products:
+
+1. **CMS-powered content** - Recipes stored in Content Island
+2. **Type-safe models** - TypeScript interfaces for recipe data
+3. **Dynamic pages** - Each recipe gets a dedicated page at `/recipes/[slug]`
+4. **Build-time rendering** - All recipe pages are statically generated
+
+## Recipe data model
+
+Recipes use a comprehensive TypeScript interface:
+
+```typescript src/pods/recipe-collection/recipe-collection.model.ts
+export interface Recipe {
+  id: string;
+  language: 'en';
+  lastUpdate: string;
+  title: string;
+  slug: string;
+  serving: number;
+  ingredientCollection: string[];
+  image: Media;
+  instruction: string;
+  difficulty: string;
+  description: string;
+  prepTime: number;
+  category: string[];
+}
+```
+
+See the [Recipe Model](/api/recipe-model) reference for complete field documentation.
+
+## Fetching recipes
+
+The `getAllRecipes` function retrieves recipes from Content Island:
+
+```typescript src/pods/recipe-collection/recipe-collection.api.ts
+import client from "#lib/client.ts";
+import type { Recipe } from "./recipe-collection.model";
+
+export const getAllRecipes = async () => 
+    await client.getContentList<Recipe>({
+        contentType: 'Recipe',
+        sort: {'fields.title': 'asc'},
+        pagination: { take: 14 },
+    })
+```
+
+### Key parameters
+
+- `contentType: 'Recipe'` - Specifies the Recipe content type in Content Island
+- `sort: {'fields.title': 'asc'}` - Alphabetical ordering
+- `pagination: { take: 14 }` - Limits to 14 recipes per fetch
+
+## Featured recipes
+
+The homepage displays a curated selection of three recipes:
+
+```typescript src/pods/recipe-collection/recipe-collection.api.ts
+export const getIndexRecipes = async () => {
+    const allRecipes = await getAllRecipes();
+    const indexRecipes = allRecipes.slice(0, 3);
+    return indexRecipes
+}
+```
+
+This function returns the first three recipes from the sorted list for homepage display.
+
+## Dynamic routing
+
+Recipe pages use file-based dynamic routing:
+
+**Directory structure:**
+```
+src/pages/recipes/
+├── index.astro          # Recipe listing page
+└── [slug].astro         # Individual recipe pages
+```
+
+**URL pattern:**
+- `/recipes` - All recipes
+- `/recipes/quinoa-breakfast-bowl` - Individual recipe
+- `/recipes/peruvian-coffee-tiramisu` - Another recipe
+
+The `slug` field determines each recipe's URL.
+
+## Recipe listing page
+
+The main recipes page uses the `RecipesPod` component:
+
+```astro src/pages/recipes/index.astro
+---
+import Layout from "#layouts/Layout.astro";
+import RecipesPod from "#pods/recipe-collection/recipe-collection.pod.astro";
+---
+
+<Layout title="Our Recipes">
+  <section class="max-w-7xl mx-auto">
+    <div class="text-center my-8 sm:my-12 md:my-16">
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-primary mb-4 sm:mb-6">
+        Find Your Inspiration
+      </h1>
+      <p class="text-base sm:text-lg md:text-xl font-semibold text-secondary max-w-2xl mx-auto">
+        Discover delicious and natural Peruvian-inspired recipes, crafted to delight your senses and nourish your body.
+      </p>
+    </div>
+    <RecipesPod />
+  </section>
+</Layout>
+```
+
+## Recipe components
+
+Each recipe includes:
+
+### Ingredients list
+Stored as an array of strings in `ingredientCollection`:
+```json
+[
+  "2 cups cooked quinoa",
+  "1 avocado, sliced",
+  "2 eggs",
+  "1/4 cup cherry tomatoes"
+]
+```
+
+### Cooking instructions
+Detailed step-by-step instructions in the `instruction` field (text format).
+
+### Difficulty level
+Options include:
+- Easy
+- Medium
+- Advanced
+
+### Preparation time
+Stored in minutes as a number (e.g., `prepTime: 25`).
+
+### Recipe imagery
+High-quality hero image stored in the `image` field (Content Island Media type).
+
+## Recipe categories
+
+Recipes are tagged with categories for filtering:
+
+- **Breakfast** - Morning meals and brunch
+- **Lunch** - Midday dishes
+- **Dinner** - Evening entrees
+- **Desserts** - Sweet treats
+- **Beverages** - Coffee drinks and smoothies
+- **Snacks** - Quick bites
+
+Categories are stored in the `category` array on each recipe.
+
+## Content structure
+
+<Accordion title="Example recipe data structure">
+```json
+{
+  "id": "recipe_001",
+  "language": "en",
+  "title": "Quinoa Breakfast Bowl",
+  "slug": "quinoa-breakfast-bowl",
+  "serving": 2,
+  "prepTime": 20,
+  "difficulty": "Easy",
+  "description": "A nutritious start to your day with Alefoods organic quinoa",
+  "ingredientCollection": [
+    "1 cup Alefoods white quinoa, cooked",
+    "1 avocado, sliced",
+    "2 poached eggs",
+    "1/4 cup cherry tomatoes, halved",
+    "Fresh cilantro for garnish"
+  ],
+  "instruction": "1. Cook quinoa according to package directions.\n2. Divide quinoa between two bowls.\n3. Top with sliced avocado and poached eggs.\n4. Add cherry tomatoes and cilantro.\n5. Season with salt and pepper to taste.",
+  "category": ["Breakfast", "Healthy"]
+}
+```
+</Accordion>
+
+## Build process
+
+Recipes are fetched at build time:
+
+<Steps>
+  <Step title="Static generation">
+    Astro builds the site using `astro build`
+  </Step>
+  <Step title="API fetch">
+    `getAllRecipes()` calls Content Island API with authentication
+  </Step>
+  <Step title="Page creation">
+    A static page is generated for each recipe slug
+  </Step>
+  <Step title="Deployment">
+    Pre-rendered pages deploy to hosting platform
+  </Step>
+</Steps>
+
+<Warning>
+If Content Island is unreachable during build, the build will fail. Configure `CONTENT_ISLAND_SECRET_TOKEN` correctly in your environment.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Recipe Model" icon="code" href="/api/recipe-model">
+    View complete Recipe TypeScript interface
+  </Card>
+  <Card title="Content Management" icon="database" href="/features/content-management">
+    Learn how to manage recipes in Content Island
+  </Card>
+</CardGroup>

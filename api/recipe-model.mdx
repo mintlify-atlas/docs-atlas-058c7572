@@ -1,0 +1,91 @@
+---
+title: "Recipe Model"
+description: "TypeScript interface for recipe data in the Alefoods system"
+---
+
+The `Recipe` interface represents a cooking recipe in the Alefoods system. Each recipe includes preparation instructions, ingredients, difficulty level, and timing information.
+
+## Recipe Interface
+
+<ResponseField name="id" type="string" required>
+  Unique identifier for the recipe
+</ResponseField>
+
+<ResponseField name="language" type="'en'" required>
+  Language code for the recipe content. Currently supports English ('en')
+</ResponseField>
+
+<ResponseField name="lastUpdate" type="string" required>
+  Timestamp of the last update in ISO 8601 format (e.g., `2021-09-10T19:30:00.000Z`)
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Display name of the recipe
+</ResponseField>
+
+<ResponseField name="slug" type="string" required>
+  URL-friendly identifier for the recipe, used in routing
+</ResponseField>
+
+<ResponseField name="serving" type="number" required>
+  Number of servings the recipe yields
+</ResponseField>
+
+<ResponseField name="ingredientCollection" type="string[]" required>
+  Array of ingredient descriptions, each typically including quantity and item name
+</ResponseField>
+
+<ResponseField name="image" type="Media" required>
+  Media object containing the recipe's main image. See the Media type from `@content-island/api-client`
+</ResponseField>
+
+<ResponseField name="instruction" type="string" required>
+  Step-by-step cooking instructions for the recipe
+</ResponseField>
+
+<ResponseField name="difficulty" type="string" required>
+  Difficulty level of the recipe (e.g., "Easy", "Medium", "Hard")
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Brief description or introduction to the recipe
+</ResponseField>
+
+<ResponseField name="prepTime" type="number" required>
+  Preparation time in minutes
+</ResponseField>
+
+<ResponseField name="category" type="string[]" required>
+  Array of category identifiers or tags for recipe classification
+</ResponseField>
+
+## Example
+
+```typescript
+const recipe: Recipe = {
+  id: "recipe_001",
+  language: "en",
+  lastUpdate: "2024-03-15T14:20:00.000Z",
+  title: "Grilled Salmon with Lemon Butter",
+  slug: "grilled-salmon-lemon-butter",
+  serving: 4,
+  ingredientCollection: [
+    "4 salmon fillets (6 oz each)",
+    "3 tablespoons butter, melted",
+    "2 tablespoons fresh lemon juice",
+    "2 cloves garlic, minced",
+    "1 teaspoon dried dill",
+    "Salt and pepper to taste",
+    "Lemon wedges for serving"
+  ],
+  image: {
+    url: "https://example.com/grilled-salmon.jpg",
+    alt: "Grilled salmon with lemon butter sauce"
+  },
+  instruction: "1. Preheat grill to medium-high heat (375-400°F).\n\n2. In a small bowl, mix melted butter, lemon juice, minced garlic, and dill.\n\n3. Season salmon fillets with salt and pepper on both sides.\n\n4. Brush the grill grates with oil to prevent sticking.\n\n5. Place salmon fillets skin-side down on the grill.\n\n6. Brush the tops with the lemon butter mixture.\n\n7. Grill for 4-5 minutes, then carefully flip.\n\n8. Brush with more lemon butter and grill for another 4-5 minutes until fish flakes easily with a fork.\n\n9. Remove from grill and let rest for 2 minutes.\n\n10. Serve hot with lemon wedges and remaining butter sauce.",
+  difficulty: "Easy",
+  description: "A simple yet elegant dish featuring perfectly grilled salmon with a tangy lemon butter sauce. This healthy and flavorful recipe is perfect for weeknight dinners or special occasions.",
+  prepTime: 25,
+  category: ["seafood", "dinner", "healthy", "grilling"]
+};
+```

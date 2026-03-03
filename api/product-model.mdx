@@ -1,0 +1,143 @@
+---
+title: "Product Model"
+description: "TypeScript interface for product data in the Alefoods system"
+---
+
+The `Product` interface represents a food product in the Alefoods catalog. Each product contains detailed information including pricing, nutrition facts, inventory status, and media assets.
+
+## Product Interface
+
+<ResponseField name="id" type="string" required>
+  Unique identifier for the product
+</ResponseField>
+
+<ResponseField name="language" type="'en'" required>
+  Language code for the product content. Currently supports English ('en')
+</ResponseField>
+
+<ResponseField name="lastUpdate" type="string" required>
+  Timestamp of the last update in ISO 8601 format (e.g., `2021-09-10T19:30:00.000Z`)
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Display name of the product
+</ResponseField>
+
+<ResponseField name="slug" type="string" required>
+  URL-friendly identifier for the product, used in routing
+</ResponseField>
+
+<ResponseField name="price" type="number" required>
+  Product price in the base currency
+</ResponseField>
+
+<ResponseField name="weight" type="string" required>
+  Product weight or quantity (e.g., "500g", "1kg")
+</ResponseField>
+
+<ResponseField name="picture" type="Media[]" required>
+  Array of media objects containing product images. See the Media type from `@content-island/api-client`
+</ResponseField>
+
+<ResponseField name="shortDescription" type="string" required>
+  Brief summary of the product for list views and cards
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Full product description with detailed information
+</ResponseField>
+
+<ResponseField name="inStock" type="boolean">
+  Optional field indicating product availability. When undefined, stock status is unknown
+</ResponseField>
+
+<ResponseField name="feature" type="string[]" required>
+  Array of product features or highlights (e.g., "Organic", "Gluten-Free")
+</ResponseField>
+
+<ResponseField name="nutritionInfo" type="NutritionInfo[]" required>
+  Array of nutrition information objects. See [NutritionInfo](#nutritioninfo-interface) below
+</ResponseField>
+
+<ResponseField name="category" type="string[]" required>
+  Array of category identifiers or tags for product classification
+</ResponseField>
+
+## NutritionInfo Interface
+
+The `NutritionInfo` interface represents individual nutrition facts for a product.
+
+<ResponseField name="id" type="string" required>
+  Unique identifier for the nutrition fact entry
+</ResponseField>
+
+<ResponseField name="language" type="'en'" required>
+  Language code for the nutrition information. Currently supports English ('en')
+</ResponseField>
+
+<ResponseField name="lastUpdate" type="string" required>
+  Timestamp of the last update in ISO 8601 format
+</ResponseField>
+
+<ResponseField name="label" type="string" required>
+  Name of the nutrition fact (e.g., "Calories", "Protein", "Carbohydrates")
+</ResponseField>
+
+<ResponseField name="value" type="string" required>
+  Value of the nutrition fact with units (e.g., "250 kcal", "15g")
+</ResponseField>
+
+## Example
+
+```typescript
+const product: Product = {
+  id: "prod_001",
+  language: "en",
+  lastUpdate: "2024-03-15T10:30:00.000Z",
+  title: "Organic Salmon Fillet",
+  slug: "organic-salmon-fillet",
+  price: 24.99,
+  weight: "500g",
+  picture: [
+    {
+      url: "https://example.com/salmon-fillet.jpg",
+      alt: "Fresh organic salmon fillet"
+    }
+  ],
+  shortDescription: "Premium wild-caught Atlantic salmon, sustainably sourced",
+  description: "Our organic salmon fillets are wild-caught from the pristine waters of the Atlantic Ocean. Rich in omega-3 fatty acids and high-quality protein, this premium fish is perfect for grilling, baking, or pan-searing.",
+  inStock: true,
+  feature: ["Organic", "Wild-Caught", "High in Omega-3", "Sustainable"],
+  nutritionInfo: [
+    {
+      id: "nut_001",
+      language: "en",
+      lastUpdate: "2024-03-15T10:30:00.000Z",
+      label: "Calories",
+      value: "206 kcal"
+    },
+    {
+      id: "nut_002",
+      language: "en",
+      lastUpdate: "2024-03-15T10:30:00.000Z",
+      label: "Protein",
+      value: "22g"
+    },
+    {
+      id: "nut_003",
+      language: "en",
+      lastUpdate: "2024-03-15T10:30:00.000Z",
+      label: "Fat",
+      value: "13g"
+    },
+    {
+      id: "nut_004",
+      language: "en",
+      lastUpdate: "2024-03-15T10:30:00.000Z",
+      label: "Omega-3",
+      value: "2.2g"
+    }
+  ],
+  category: ["seafood", "fish", "premium"]
+};
+```

@@ -1,0 +1,360 @@
+---
+title: 'Deployment'
+description: 'Deploy Alefoods to Vercel, Netlify, or other hosting platforms'
+---
+
+## Overview
+
+Alefoods is configured for **static site generation** (`output: 'static'`) and can be deployed to various hosting platforms. The project uses the **Vercel adapter** by default but can also be deployed to Netlify or other static hosting providers.
+
+## Vercel Deployment (Recommended)
+
+The project is pre-configured with the `@astrojs/vercel` adapter in `astro.config.mjs`.
+
+### Configuration
+
+```javascript astro.config.mjs
+import vercel from '@astrojs/vercel';
+
+export default defineConfig({
+  site: "https://alefoods.vercel.app",
+  output: 'static',
+  adapter: vercel(),
+  // ... other configuration
+});
+```
+
+### Deployment Steps
+
+<Steps>
+  <Step title="Connect repository to Vercel">
+    1. Go to [vercel.com](https://vercel.com) and sign in
+    2. Click **Add New Project**
+    3. Import your Git repository (GitHub, GitLab, or Bitbucket)
+  </Step>
+
+  <Step title="Configure build settings">
+    Vercel should auto-detect Astro, but verify these settings:
+    
+    - **Framework Preset**: Astro
+    - **Build Command**: `pnpm build`
+    - **Output Directory**: `dist`
+    - **Install Command**: `pnpm install`
+    - **Node Version**: 20.x
+  </Step>
+
+  <Step title="Add environment variables">
+    In the Vercel project settings, go to **Settings** → **Environment Variables** and add:
+    
+    - `CONTENT_ISLAND_SECRET_TOKEN`
+    - `RESEND_API_KEY`
+    - `FROM_EMAIL`
+    - `TO_EMAIL`
+    
+    See [Environment Variables](/development/environment-variables) for details.
+  </Step>
+
+  <Step title="Deploy">
+    Click **Deploy** and Vercel will build and deploy your site.
+    
+    Your site will be available at `https://your-project.vercel.app`
+  </Step>
+</Steps>
+
+### Vercel Features
+
+- **Automatic deployments** from Git pushes
+- **Preview deployments** for pull requests
+- **Edge Network** for global CDN
+- **Analytics** and performance monitoring
+- **Custom domains** with automatic HTTPS
+
+<Tip>
+Enable Vercel Analytics in your project settings for detailed performance insights.
+</Tip>
+
+## Netlify Deployment
+
+While the project uses the Vercel adapter by default, it can easily be deployed to Netlify.
+
+<Note>
+The README mentions the project is already deployed to Netlify at `https://alefoods-2026.netlify.app/` with a deploy status badge.
+</Note>
+
+### Switch to Netlify Adapter (Optional)
+
+To optimize for Netlify, you can switch to the Netlify adapter:
+
+<Steps>
+  <Step title="Install Netlify adapter">
+    ```bash
+    pnpm add @astrojs/netlify
+    ```
+  </Step>
+
+  <Step title="Update astro.config.mjs">
+    ```javascript astro.config.mjs
+    import netlify from '@astrojs/netlify';
+    
+    export default defineConfig({
+      // ... other configuration
+      adapter: netlify(),
+    });
+    ```
+  </Step>
+</Steps>
+
+### Deployment Steps
+
+<Steps>
+  <Step title="Connect repository to Netlify">
+    1. Go to [netlify.com](https://netlify.com) and sign in
+    2. Click **Add new site** → **Import an existing project**
+    3. Connect your Git repository
+  </Step>
+
+  <Step title="Configure build settings">
+    Set the following build settings:
+    
+    - **Build Command**: `pnpm build`
+    - **Publish Directory**: `dist`
+    - **Node Version**: 20.x (set via `.nvmrc` or environment variable)
+  </Step>
+
+  <Step title="Add environment variables">
+    In the Netlify site settings, go to **Site settings** → **Environment variables** and add:
+    
+    - `CONTENT_ISLAND_SECRET_TOKEN`
+    - `RESEND_API_KEY`
+    - `FROM_EMAIL`
+    - `TO_EMAIL`
+  </Step>
+
+  <Step title="Deploy">
+    Click **Deploy site** and Netlify will build and deploy your project.
+  </Step>
+</Steps>
+
+### Optional: netlify.toml Configuration
+
+Create a `netlify.toml` file in the project root for advanced configuration:
+
+```toml netlify.toml
+[build]
+  command = "pnpm build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_VERSION = "9"
+
+[[redirects]]
+  from = "/404"
+  to = "/404.html"
+  status = 404
+
+# Enable Netlify Forms for contact form (alternative to Resend)
+# [build.processing]
+#   skip_processing = false
+```
+
+<Tip>
+Add a Netlify deploy status badge to your README:
+```markdown
+[![Netlify Status](https://api.netlify.com/api/v1/badges/YOUR-BADGE-ID/deploy-status)](https://app.netlify.com/sites/YOUR-SITE/deploys)
+```
+</Tip>
+
+## Other Hosting Platforms
+
+Since Alefoods generates a static site, it can be deployed to any static hosting provider:
+
+### Cloudflare Pages
+
+- **Build command**: `pnpm build`
+- **Output directory**: `dist`
+- **Environment variables**: Set in Cloudflare Pages dashboard
+
+### AWS Amplify
+
+- **Build command**: `pnpm build`
+- **Output directory**: `dist`
+- **Node version**: 20.x
+
+### GitHub Pages
+
+- Use GitHub Actions workflow
+- Set `site` in `astro.config.mjs` to your GitHub Pages URL
+- Configure environment variables in GitHub Secrets
+
+## Build Configuration
+
+### Static Output
+
+The project is configured for static site generation:
+
+```javascript astro.config.mjs
+export default defineConfig({
+  output: 'static',
+  site: "https://alefoods.vercel.app",
+  // ...
+});
+```
+
+### Sitemap Generation
+
+A sitemap is automatically generated and excludes the 404 page:
+
+```javascript astro.config.mjs
+integrations: [
+  sitemap({
+    filter: (page) => !page.includes('/404'),
+  }),
+]
+```
+
+The sitemap will be available at `/sitemap-0.xml` after deployment.
+
+### Build Output
+
+Running `pnpm build` generates:
+- Static HTML files in `dist/`
+- Optimized assets (images, CSS, JS)
+- Sitemap XML file
+- All static files from `public/`
+
+## Production Checklist
+
+Before deploying to production, ensure:
+
+<AccordionGroup>
+  <Accordion title="Environment Variables">
+    - All 4 required environment variables are set in the hosting platform
+    - `CONTENT_ISLAND_SECRET_TOKEN` is valid and has access to products/recipes
+    - `RESEND_API_KEY` is from your production Resend account
+    - `FROM_EMAIL` is verified in Resend
+    - `TO_EMAIL` is your actual business email
+  </Accordion>
+
+  <Accordion title="Content Island Access">
+    - Content Island API is accessible from your hosting provider
+    - Products and recipes are configured in Content Island
+    - Test fetching data during build by running `pnpm build` locally
+  </Accordion>
+
+  <Accordion title="Email Configuration">
+    - Sender domain is verified in Resend
+    - Test contact form in preview deployment
+    - Check Resend logs for successful email delivery
+  </Accordion>
+
+  <Accordion title="SEO & Performance">
+    - Update `site` URL in `astro.config.mjs` to your production domain
+    - Verify sitemap is generated and accessible
+    - Test Core Web Vitals and performance
+    - Add meta descriptions to all pages
+    - Ensure all images have alt text
+  </Accordion>
+
+  <Accordion title="Security">
+    - `.env` file is not committed to Git
+    - API keys are rotated and stored securely
+    - HTTPS is enabled (automatic with Vercel/Netlify)
+    - Content Security Policy headers (optional)
+  </Accordion>
+
+  <Accordion title="Domain & SSL">
+    - Custom domain configured (if applicable)
+    - SSL certificate is active and valid
+    - Update `site` in `astro.config.mjs` to match custom domain
+  </Accordion>
+</AccordionGroup>
+
+## Continuous Deployment
+
+Both Vercel and Netlify support automatic deployments:
+
+### Automatic Deployments
+
+- **Production**: Automatically deploy on push to `main` branch
+- **Preview**: Automatically deploy on pull requests
+- **Branch Deploys**: Deploy specific branches for testing
+
+### Build Hooks
+
+Trigger rebuilds when Content Island content changes:
+
+1. Create a build hook in Vercel/Netlify
+2. Configure webhook in Content Island to trigger builds on content updates
+3. Site automatically rebuilds with new content
+
+## Monitoring & Analytics
+
+### Vercel Analytics
+
+Enable in Vercel project settings for:
+- Page views and traffic
+- Core Web Vitals
+- Real User Monitoring (RUM)
+
+### Netlify Analytics
+
+Enable in Netlify site settings for:
+- Server-side analytics (no JavaScript required)
+- Bandwidth and request statistics
+- Unique visitors
+
+### Third-Party Analytics
+
+Consider adding:
+- Google Analytics 4
+- Plausible Analytics (privacy-focused)
+- Fathom Analytics
+
+## Troubleshooting Deployment
+
+### Build Fails on Deployment
+
+**Symptoms:** Build succeeds locally but fails on platform
+
+**Solutions:**
+- Verify environment variables are set correctly
+- Check Node.js version matches (20.x)
+- Review build logs for specific errors
+- Ensure Content Island API is accessible from hosting provider
+
+### Missing Environment Variables
+
+**Symptoms:** Build fails with "required" error
+
+**Solutions:**
+- Add all 4 required variables to deployment platform
+- Ensure no typos in variable names
+- Check variable scopes (production, preview, etc.)
+
+### Content Not Loading
+
+**Symptoms:** Products/recipes pages are empty or show errors
+
+**Solutions:**
+- Verify `CONTENT_ISLAND_SECRET_TOKEN` is valid
+- Check Content Island API status
+- Review network requests in browser dev tools
+- Test API token locally with `pnpm build`
+
+### Emails Not Sending
+
+**Symptoms:** Contact form submissions don't send emails
+
+**Solutions:**
+- Verify `RESEND_API_KEY` is set and valid
+- Ensure `FROM_EMAIL` is verified in Resend
+- Check Resend dashboard for error logs
+- Test in preview deployment before production
+
+## Next Steps
+
+- Configure [Environment Variables](/development/environment-variables) for production
+- Review [Project Structure](/development/project-structure) for customization
+- Set up monitoring and analytics
+- Configure custom domain and SSL

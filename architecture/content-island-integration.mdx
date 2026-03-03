@@ -1,0 +1,398 @@
+---
+title: Content Island integration
+description: Deep dive into how Content Island CMS powers the product catalog and recipe library
+---
+
+Content Island serves as the headless CMS for Alefoods, providing API-driven content management for products and recipes. This page explains the technical implementation of the integration.
+
+## Why Content Island?
+
+Content Island was chosen for several reasons:
+
+- **API-first design** - Perfect for static site generation
+- **TypeScript support** - Official client with full type safety
+- **Structured content** - Define schemas for products and recipes
+- **Developer experience** - Clean API with good documentation
+- **Performance** - Fast API responses suitable for build-time fetching
+
+## Client initialization
+
+The Content Island client is a singleton created in `src/lib/client.ts`:
+
+```typescript src/lib/client.ts
+import { createClient } from "@content-island/api-client";
+import { CONTENT_ISLAND_SECRET_TOKEN } from "astro:env/server";
+
+const client = createClient({
+    accessToken: CONTENT_ISLAND_SECRET_TOKEN,
+})
+
+export default client;
+```
+
+### Why a singleton?
+
+- **Single configuration point** - Token configured once
+- **Reusability** - Import the same client everywhere
+- **Connection pooling** - Client can manage connections efficiently
+
+## Authentication
+
+Content Island uses token-based authentication:
+
+<ParamField path="CONTENT_ISLAND_SECRET_TOKEN" type="string" required>
+  Secret token obtained from Content Island dashboard. Provides full read/write access to content.
+</ParamField>
+
+**Security considerations:**
+
+<Warning>
+This token is **server-side only**. It's used during the build process but never exposed to the browser.
+</Warning>
+
+The token is configured in `astro.config.mjs`:
+
+```javascript astro.config.mjs
+env: {
+  schema: {
+    CONTENT_ISLAND_SECRET_TOKEN: envField.string({
+      context: 'server',      // Never sent to client
+      access: 'secret',        // Treated as sensitive
+      optional: false,         // Build fails without it
+      default: 'INFORM_VALID_TOKEN',
+    }),
+  }
+}
+```
+
+## API client usage
+
+The client provides a `getContentList` method for fetching content:
+
+```typescript
+client.getContentList<T>({
+  contentType: string,
+  includeRelatedContent?: boolean,
+  sort?: { [field: string]: 'asc' | 'desc' },
+  pagination?: { take?: number, skip?: number },
+}): Promise<T[]>
+```
+
+## Product fetching implementation
+
+Products are fetched in `src/pods/products-collection/products-collection.api.ts`:
+
+```typescript src/pods/products-collection/products-collection.api.ts
+import client from "#lib/client.ts";
+import type { Product } from "./products-collection.model";
+
+export const getAllProducts = async () =>
+    await client.getContentList<Product>({
+        contentType: 'Product',
+        includeRelatedContent: true,
+        sort: {'fields.title': 'asc'},
+    })
+```
+
+### Parameter breakdown
+
+<ParamField path="contentType" type="string">
+  `'Product'` - The content type name in Content Island
+</ParamField>
+
+<ParamField path="includeRelatedContent" type="boolean">
+  `true` - Includes nested `nutritionInfo` array. Without this, nutrition data would be empty.
+</ParamField>
+
+<ParamField path="sort" type="object">
+  `{'fields.title': 'asc'}` - Sorts products alphabetically by title
+</ParamField>
+
+### Type safety
+
+The generic `<Product>` parameter ensures TypeScript knows the response shape:
+
+```typescript
+const products = await getAllProducts();
+
+// TypeScript knows these fields exist:
+products[0].title        // ✅ string
+products[0].price        // ✅ number
+products[0].nutritionInfo // ✅ NutritionInfo[]
+products[0].invalidField  // ❌ TypeScript error
+```
+
+## Recipe fetching implementation
+
+Recipes are fetched similarly in `src/pods/recipe-collection/recipe-collection.api.ts`:
+
+```typescript src/pods/recipe-collection/recipe-collection.api.ts
+import client from "#lib/client.ts";
+import type { Recipe } from "./recipe-collection.model";
+
+export const getAllRecipes = async () => 
+    await client.getContentList<Recipe>({
+        contentType: 'Recipe',
+        sort: {'fields.title': 'asc'},
+        pagination: { take: 14 },
+    })
+```
+
+### Pagination
+
+Recipes use pagination to limit results:
+
+<ParamField path="pagination.take" type="number">
+  `14` - Maximum number of recipes to fetch. Prevents fetching hundreds of recipes if the catalog grows.
+</ParamField>
+
+<ParamField path="pagination.skip" type="number">
+  Number of recipes to skip. Useful for implementing "Load more" functionality.
+</ParamField>
+
+## Content structure in Content Island
+
+### Product content type schema
+
+In Content Island, the Product content type has these fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | Text | Product name |
+| `slug` | Slug | URL-friendly identifier |
+| `price` | Number | Price in USD |
+| `weight` | Text | Weight/size (e.g., "500g") |
+| `picture` | Media Array | Product images |
+| `shortDescription` | Text | Brief description |
+| `description` | Rich Text | Full description |
+| `inStock` | Boolean | Availability status |
+| `feature` | Text Array | Product features |
+| `nutritionInfo` | Reference Array | Links to NutritionInfo entries |
+| `category` | Text Array | Product categories |
+
+### Recipe content type schema
+
+The Recipe content type has these fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | Text | Recipe name |
+| `slug` | Slug | URL-friendly identifier |
+| `serving` | Number | Number of servings |
+| `ingredientCollection` | Text Array | List of ingredients |
+| `image` | Media | Hero image |
+| `instruction` | Long Text | Cooking steps |
+| `difficulty` | Text | Easy/Medium/Advanced |
+| `description` | Text | Recipe summary |
+| `prepTime` | Number | Minutes to prepare |
+| `category` | Text Array | Recipe categories |
+
+## When content is fetched
+
+Content fetching happens at specific times:
+
+### During local development
+
+```bash
+pnpm dev
+```
+
+Astro dev server fetches content when pages are first accessed. Content is cached during the dev session.
+
+### During production build
+
+```bash
+pnpm build
+```
+
+Content is fetched once at the start of the build. All pages are generated with this data snapshot.
+
+### During deployment
+
+Vercel/Netlify runs `pnpm build`, which triggers content fetching. The deployed site contains a snapshot of content at build time.
+
+## Error handling
+
+If Content Island is unavailable during build:
+
+```typescript
+try {
+  const products = await getAllProducts();
+} catch (error) {
+  console.error('Failed to fetch products:', error);
+  throw error; // Build fails
+}
+```
+
+**Common error scenarios:**
+
+<AccordionGroup>
+  <Accordion title="Invalid token">
+    ```
+    Error: Unauthorized (401)
+    ```
+    **Fix:** Verify `CONTENT_ISLAND_SECRET_TOKEN` is correct in environment variables.
+  </Accordion>
+  
+  <Accordion title="Content Island downtime">
+    ```
+    Error: ECONNREFUSED
+    ```
+    **Fix:** Wait for Content Island to come back online, or use cached content if available.
+  </Accordion>
+  
+  <Accordion title="Content type not found">
+    ```
+    Error: Content type 'Product' does not exist
+    ```
+    **Fix:** Ensure content type names match exactly (case-sensitive).
+  </Accordion>
+  
+  <Accordion title="Rate limiting">
+    ```
+    Error: Too Many Requests (429)
+    ```
+    **Fix:** Reduce API calls or wait before rebuilding.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+Build failures prevent deployment. Always test content changes in a preview environment.
+</Warning>
+
+## Build-time vs. runtime fetching
+
+Alefoods uses **build-time fetching**:
+
+### Build-time approach (current)
+
+```typescript
+// Runs during `astro build`
+const products = await getAllProducts();
+```
+
+**Pros:**
+- Fastest page loads (static HTML)
+- No runtime API dependencies
+- Lower hosting costs
+- Better SEO
+
+**Cons:**
+- Content updates require rebuild
+- Build time increases with content volume
+
+### Runtime approach (alternative)
+
+```typescript
+// Would run on every page load
+const products = await fetch('/api/products');
+```
+
+**Pros:**
+- Content updates instantly
+- No rebuild needed
+
+**Cons:**
+- Slower page loads
+- Higher server costs
+- More complex caching
+
+<Info>
+For a B2B product catalog that updates weekly or monthly, build-time fetching is optimal.
+</Info>
+
+## Automatic deployments on content change
+
+You can configure webhooks to trigger deploys when content changes:
+
+<Steps>
+  <Step title="Create deploy webhook in Vercel">
+    Go to Vercel project settings → Git → Deploy Hooks. Create a webhook URL.
+  </Step>
+  <Step title="Add webhook to Content Island">
+    In Content Island settings, add the Vercel webhook URL to trigger on content publish.
+  </Step>
+  <Step title="Test the flow">
+    Publish a product in Content Island. Vercel should automatically start a new build.
+  </Step>
+</Steps>
+
+This removes the manual step of triggering deployments after content updates.
+
+## Caching strategy
+
+Content Island responses can be cached:
+
+```typescript
+const client = createClient({
+    accessToken: CONTENT_ISLAND_SECRET_TOKEN,
+    cache: 'default', // Use standard HTTP caching
+})
+```
+
+**Cache behavior:**
+- Build-time: Content is cached for the duration of the build
+- Dev server: Content may be cached between page refreshes
+- Production: No caching needed (content is baked into static files)
+
+## Content preview mode
+
+For previewing unpublished content (future enhancement):
+
+```typescript
+const products = await client.getContentList<Product>({
+    contentType: 'Product',
+    preview: true, // Include draft/unpublished content
+})
+```
+
+<Tip>
+You could create a separate preview deployment that uses `preview: true` to see draft products before publishing.
+</Tip>
+
+## Performance optimization
+
+### Parallel fetching
+
+Fetch products and recipes in parallel:
+
+```typescript
+const [products, recipes] = await Promise.all([
+  getAllProducts(),
+  getAllRecipes(),
+]);
+```
+
+This reduces total build time compared to sequential fetching.
+
+### Selective fetching
+
+Only fetch needed fields:
+
+```typescript
+const products = await client.getContentList<Product>({
+    contentType: 'Product',
+    fields: ['title', 'slug', 'price'], // Only fetch these fields
+})
+```
+
+<Note>
+Alefoods currently fetches all fields since the API calls are fast and product count is low.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Product Catalog" icon="grid" href="/features/product-catalog">
+    See how products are displayed
+  </Card>
+  <Card title="Recipe Library" icon="book" href="/features/recipe-library">
+    See how recipes are displayed
+  </Card>
+  <Card title="Content Management" icon="database" href="/features/content-management">
+    Learn about managing content in Content Island
+  </Card>
+  <Card title="Environment Variables" icon="key" href="/development/environment-variables">
+    Configure Content Island token
+  </Card>
+</CardGroup>
