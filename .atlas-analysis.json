@@ -1,0 +1,87 @@
+{
+  "projectType": "saas",
+  "projectName": "Alefoods",
+  "projectDescription": "Digital showroom and lead generation site for exporting Peruvian superfoods, quinoa, and specialty coffee.",
+  "theme": "almond",
+  "primaryColor": "#8B4513",
+  "lightColor": "#D2691E",
+  "darkColor": "#5C2E0A",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/product-catalog",
+              "features/recipe-library",
+              "features/contact-form",
+              "features/content-management"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/setup",
+              "development/project-structure",
+              "development/environment-variables",
+              "development/deployment"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "architecture/overview",
+              "architecture/content-island-integration",
+              "architecture/email-service"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Data Models",
+            "pages": [
+              "api/product-model",
+              "api/recipe-model"
+            ]
+          },
+          {
+            "group": "Actions",
+            "pages": [
+              "api/contact-action"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Dynamic product catalog powered by Content Island CMS",
+    "Recipe library with step-by-step instructions and imagery",
+    "Contact form with Resend email integration and honeypot spam protection",
+    "SEO-optimized static site generation with Astro",
+    "Responsive Tailwind CSS UI",
+    "Netlify/Vercel deployment ready"
+  ],
+  "publicApiSurface": [
+    "Product (interface)",
+    "Recipe (interface)",
+    "NutritionInfo (interface)",
+    "server.send (Astro Action)",
+    "getAllProducts (API function)",
+    "getAllRecipes (API function)",
+    "getProductBySlug (API function)",
+    "getRecipeBySlug (API function)"
+  ]
+}
